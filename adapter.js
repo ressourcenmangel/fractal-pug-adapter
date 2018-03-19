@@ -2,32 +2,47 @@ const fractal = require('@frctl/fractal');
 const pretty = require('pretty');
 const _ = require('lodash');
 
+function setEnv(key, value, context) {
+  if (_.isUndefined(context[key]) && ! _.isUndefined(value)) {
+    context[key] = value;
+  }
+}
+
 module.exports = class PugAdapter extends fractal.Adapter {
-  constructor(engine, engineOptions, source, app) {
+  constructor(engine, engineOptions, helpers, source, app) {
     super(engine, source);
 
     this.app = app;
     this.engineOptions = engineOptions || {};
+    this.engineHelpers = helpers || {};
   }
 
-  render(path, str, originContext, meta = {}) {
-    // Copy context
-    const context = _.cloneDeep(originContext);
+  render(path, str, context, meta = {}) {
+    // Options
+    const options = Object.assign({}, this.engineOptions, {
+      filename: path,
+      pretty: false,
+    });
 
     // Set fractal globals
-    _.set(context, '_self', meta.self);
-    _.set(context, '_target', meta.target);
-    _.set(context, '_env', meta.env);
-    _.set(context, '_config', this.app.config());
+    setEnv('_self', meta.self, context);
+    setEnv('_target', meta.target, context);
+    setEnv('_env', meta.env, context);
+    setEnv('_config', this.app.config(), context);
 
-    // Get options
-    const options = _.isFunction(this.engineOptions) ? this.engineOptions() : this.engineOptions;
-    const filenameAndOptions = Object.assign({}, options, { filename: path });
+    // Save meta
+    this.app.set('meta', meta);
+
+    // Add helpers
+    _.forEach(this.engineHelpers, (fn, helperName) => {
+      setEnv(helperName, fn, context);
+    });
 
     // Generate template
-    const template = this.engine.compile(str, filenameAndOptions);
+    const template = this.engine.compile(str, options);
+    const renderedTemplate = template(context);
 
-    // Call template with options and context
-    return pretty(template(Object.assign({}, filenameAndOptions, context)));
+    // Prettify?
+    return this.engineOptions.pretty ? pretty(renderedTemplate) : renderedTemplate;
   }
 };
