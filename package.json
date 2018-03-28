@@ -1,6 +1,6 @@
 {
   "name": "@rsm/fractal-pug-adapter",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Use Pug templates inside Fractal",
   "main": "index.js",
   "author": "Dennis Morhardt <dennis.morhardt@ressourcenmangel.de>",

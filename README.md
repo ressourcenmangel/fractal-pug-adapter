@@ -31,6 +31,14 @@ fractal.components.engine(pugAdapter({
 
 ## Changelog
 
+### 0.3.0
+
+* Resolve context on includes
+
+### 0.2.0
+
+* Refactor apdater
+
 ### 0.1.0
 
 * First release
