@@ -46,6 +46,8 @@ module.exports = function(fractal) {
     } else if (mergeWithDefaultContext) {
       context = resolveContextSync(context, fractal);
       context = _.defaultsDeep(context, defaultContext);
+    } else {
+      context = resolveContextSync(context, fractal);
     }
 
     const template = fs.readFileSync(entity.viewPath);
