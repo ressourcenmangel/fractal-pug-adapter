@@ -31,7 +31,7 @@ fractal.components.engine(pugAdapter({
 
 ## Changelog
 
-### Unreleased
+### 0.4.0
 
 * Support high level context reference
 
