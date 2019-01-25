@@ -2,6 +2,13 @@ const _ = require('lodash');
 const fs = require('fs');
 
 function resolveContextSync(context, fractal) {
+  if (_.isString(context) && _.startsWith(context, '@')) {
+    const entity = fractal.components.find(context);
+    const entityContext = entity.isComponent ? entity.variants().default().context : entity.context;
+
+    return resolveContextSync(_.cloneDeep(entityContext), fractal);
+  }
+
   return _[_.isArray(context) ? 'map' : 'mapValues'](context, (item) => {
     if (!item) {
       return null;
