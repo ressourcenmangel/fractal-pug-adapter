@@ -1,12 +1,21 @@
 const _ = require('lodash');
 const fs = require('fs');
+const utils = require('@frctl/fractal').utils;
 
 function resolveContextSync(context, fractal) {
+  const meta = fractal.get('meta');
+  const tenant = _.get(meta, 'env.request.params.tenant', false);
+
   if (_.isString(context) && _.startsWith(context, '@')) {
     const entity = fractal.components.find(context);
     const entityContext = entity.isComponent ? entity.variants().default().context : entity.context;
 
-    return resolveContextSync(_.cloneDeep(entityContext), fractal);
+    let entityTenantContext = {};
+    if (tenant && _.isObject(entity.tenantContext) && _.isObject(entity.tenantContext[tenant])) {
+      entityTenantContext = entity.tenantContext[tenant];
+    }
+
+    return resolveContextSync(utils.mergeProp(entityTenantContext, _.cloneDeep(entityContext)), fractal);
   }
 
   return _[_.isArray(context) ? 'map' : 'mapValues'](context, (item) => {
@@ -25,7 +34,12 @@ function resolveContextSync(context, fractal) {
       const entity = fractal.components.find(handleName);
       const entityContext = entity.isComponent ? entity.variants().default().context : entity.context;
 
-      return resolveContextSync(_.cloneDeep(entityContext), fractal);
+      let entityTenantContext = {};
+      if (tenant && _.isObject(entity.tenantContext) && _.isObject(entity.tenantContext[tenant])) {
+        entityTenantContext = entity.tenantContext[tenant];
+      }
+
+      return resolveContextSync(utils.mergeProp(entityTenantContext, _.cloneDeep(entityContext)), fractal);
     }
 
     if (_.isArray(item) || _.isObject(item)) {
@@ -40,25 +54,31 @@ module.exports = function(fractal) {
   return function include(handle, context = false, mergeWithDefaultContext = true) {
     const handleName = _.isObject(handle) ? `@${handle.name}` : handle;
     const entity = fractal.components.find(handleName);
+    const meta = fractal.get('meta');
+    const tenant = _.get(meta, 'env.request.params.tenant', false);
 
     if (!entity) {
       throw new Error(`Could not render component '${handleName}' - component not found.`);
     }
 
     let defaultContext = entity.isComponent ? entity.variants().default().context : entity.context;
-    defaultContext = resolveContextSync(defaultContext, fractal);
+    let defaultTenantContext = {};
+    if (tenant && _.isObject(entity.tenantContext) && _.isObject(entity.tenantContext[tenant])) {
+      defaultTenantContext = entity.tenantContext[tenant];
+    }
+
+    defaultContext = resolveContextSync(utils.mergeProp(defaultTenantContext, defaultContext), fractal);
 
     if (!context) {
       context = defaultContext;
     } else if (mergeWithDefaultContext) {
       context = resolveContextSync(context, fractal);
-      context = _.defaultsDeep(context, defaultContext);
+      context = utils.mergeProp(context, defaultContext);
     } else {
       context = resolveContextSync(context, fractal);
     }
 
     const template = fs.readFileSync(entity.viewPath);
-    const meta = fractal.get('meta');
 
     return fractal.components.engine().render(entity.viewPath, template, context, meta);
   };
