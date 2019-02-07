@@ -31,7 +31,7 @@ fractal.components.engine(pugAdapter({
 
 ## Changelog
 
-### Unreleased
+### 0.5.0
 
 * Add support for tenant context (only with `@rsm/kuchenblech`)
 
